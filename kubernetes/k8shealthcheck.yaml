@@ -1,0 +1,81 @@
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: k8shealthcheck
+spec:
+  rules:
+    - host: k8shealthcheck.dev.speedledger.net
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: k8shealthcheck
+              servicePort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8shealthcheck
+  labels:
+    project: k8shealthcheck
+    role: server
+spec:
+  ports:
+  - port: 8080
+  selector:
+    project: k8shealthcheck
+    role: server
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8shealthcheck
+  labels:
+    project: k8shealthcheck
+    role: server
+spec:
+  selector:
+    matchLabels:
+      project: k8shealthcheck
+      role: server
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        project: k8shealthcheck
+        role: server
+    spec:
+      containers:
+      - image: k8shealthcheck:latest
+        imagePullPolicy: Never
+        name: k8shealthcheck
+        env:
+          - name: FOO
+            value: BARXXXX
+        ports:
+        - containerPort: 8080
+          name: k8shealthcheck
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: k8shealthcheck
+          periodSeconds: 5
+          failureThreshold: 1
+          initialDelaySeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: k8shealthcheck
+          periodSeconds: 5
+          failureThreshold: 1
+          initialDelaySeconds: 5
